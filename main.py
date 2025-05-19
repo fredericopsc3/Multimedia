@@ -4,11 +4,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from io_utils import read_file_bytes, write_file_bytes
 from rle import rle_encode, rle_decode
-from metrics import compute_compression_ratio, time_function, write_metrics_csv
-
+from metrics import compute_compression_ratio, time_function, write_metrics_csv, avg_codelenght
+from PIL import Image
 
 def process_file(input_path: str, output_dirs: dict) -> dict:
-    from PIL import Image
     ext = os.path.splitext(input_path)[1].lower()
     is_image = ext in ['.png', '.jpg', '.jpeg', '.bmp']
     # Load data: raw bytes for non-images, raw RGB bytes for images
@@ -45,7 +44,9 @@ def process_file(input_path: str, output_dirs: dict) -> dict:
         else:
             # write decoded data back
             write_file_bytes(dec_path, decoded_rle)
-        enc_size = len(encoded)
+        enc_size = len(encoded)  
+
+    avg_len = avg_codelenght(encoded, len(data)) 
 
     return {
         'file': os.path.basename(input_path),
@@ -54,6 +55,7 @@ def process_file(input_path: str, output_dirs: dict) -> dict:
         'cr': cr if cr >= 1.0 else 1.0,
         't_enc': t_enc,
         't_dec': t_dec,
+        'avg_code_len': avg_len,
     }
 
 
@@ -79,6 +81,16 @@ def plot_results(results_csv: str, output_dir: str):
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'times.png'))
     plt.close()
+    # Average code lenght plot
+    plt.figure()
+    plt.bar(df['file'], df['avg_code_len'])
+    plt.xticks(rotation=45, ha='right')
+    plt.ylabel('Average Code Length (bytes/symbol)')
+    plt.title('Average Code Length for Silesia Corpus Files')
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'avg_code_length.png'))
+    plt.close()
+
     print(f"Plots saved to {output_dir}")
 
 
